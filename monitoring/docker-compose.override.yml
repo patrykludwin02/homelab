@@ -1,6 +1,6 @@
 services:
   prometheus:
-    mem_limit: 768m
+    mem_limit: 1g
     cpus: 1
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
