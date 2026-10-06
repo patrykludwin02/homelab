@@ -1,0 +1,37 @@
+# Pliki ze zmiennymi środowiskowymi i sekretami
+.env
+*.env
+!.env.example
+
+# Ogólne bazy danych i certyfikaty
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.crt
+
+# Katalogi danych, stanów i logów (obsługuje dowolną głębokość)
+**/data/
+**/db-data/
+**/state/
+**/config/
+**/logs/
+**/files/
+
+# Dedykowane wykluczenia dla usług
+**/pihole/etc-pihole/
+**/pihole/etc-dnsmasq.d/
+**/nginx-proxy-manager/letsencrypt/
+**/portainer_data/
+**/immich/library/
+**/immich/postgres/
+**/monitoring/grafana/data/
+**/monitoring/alertmanager/alertmanager.yml
+seafile/
+
+# Pliki tymczasowe, systemowe i edytorów
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

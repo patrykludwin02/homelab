@@ -1,0 +1,28 @@
+services:
+  prometheus:
+    mem_limit: 768m
+    cpus: 1
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+
+  cadvisor:
+    mem_limit: 300m
+    cpus: 0.5
+    command:
+      - '-housekeeping_interval=30s'
+      - '-docker_only=true'
+      - '-store_container_labels=false'
+      - '-disable_metrics=disk,referenced_memory'
+
+  node-exporter:
+    mem_limit: 128m
+
+  alertmanager:
+    mem_limit: 128m
+    cpus: 0.2
+
+  dozzle:
+    mem_limit: 128m
+    cpus: 0.3

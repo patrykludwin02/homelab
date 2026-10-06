@@ -1,0 +1,15 @@
+services:
+  immich-server:
+    mem_limit: 1.5g
+    cpus: 2
+
+  immich-machine-learning:
+    mem_limit: 3g           # modele ML wczytują się do RAM przy pierwszym użyciu i tam zostają
+    cpus: 2
+
+  database:
+    mem_limit: 1g
+    cpus: 1
+
+  redis:
+    mem_limit: 128m

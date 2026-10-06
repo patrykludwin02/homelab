@@ -1,0 +1,13 @@
+services:
+  speedtest:
+    image: adolfintel/speedtest:latest
+    container_name: speedtest
+    restart: unless-stopped
+    ports:
+      - "${BIND_IP:-0.0.0.0}:8092:80"
+    networks:
+      - homelab_net
+
+networks:
+  homelab_net:
+    external: true
