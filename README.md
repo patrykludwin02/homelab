@@ -294,8 +294,6 @@ Tailscale nie używa pliku `.env`. Cloudflared, Diun i Pi-hole nie używają `BI
 
 - **Jellyfin:** transkodowanie sprzętowe jest włączone, a `/dev/dri` zmapowane bezwarunkowo. Na maszynie bez GPU/iGPU usuń sekcję `devices` w `media-stack/docker-compose.yml`, inaczej kontener się nie uruchomi.
 - **Pi-hole w sieci bridge:** w logach zapytań wszyscy klienci mogą wyglądać jak adres bramy Dockera, więc statystyki per urządzenie są mniej dokładne niż w trybie `host`. Do samego filtrowania DNS nie ma to wpływu.
-- **Watchtower:** w pliku Compose Immicha etykiety `com.centurylinklabs.watchtower.enable=false` na bazie i cache są pozostałością po oficjalnym pliku. Watchtower nie jest częścią tego repozytorium.
-- **`.gitignore`** zawiera wpisy dla `grafana` i `seafile`, których w repozytorium nie ma.
 - **Seerr** trzyma konfigurację w katalogu `jellyseerr` (nazwa z wcześniejszej wersji aplikacji).
 
 ## Licencja

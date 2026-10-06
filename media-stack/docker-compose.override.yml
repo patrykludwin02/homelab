@@ -4,8 +4,8 @@ services:
     cpus: 1
 
   jellyfin:
-    mem_limit: 2g
-    cpus: 2
+    mem_limit: 4g
+    cpus: 4
 
   seerr:
     mem_limit: 1024m
@@ -28,9 +28,9 @@ services:
     cpus: 0.5
 
   qbittorrent:
-    mem_limit: 2g       
+    mem_limit: 4g       
     mem_reservation: 400m
-    cpus: 1.5
+    cpus: 2.5
 
   flaresolverr:
     mem_limit: 2g        
