@@ -26,9 +26,7 @@
 **/portainer_data/
 **/immich/library/
 **/immich/postgres/
-**/monitoring/grafana/data/
 **/monitoring/alertmanager/alertmanager.yml
-seafile/
 
 # Pliki tymczasowe, systemowe i edytorów
 .DS_Store

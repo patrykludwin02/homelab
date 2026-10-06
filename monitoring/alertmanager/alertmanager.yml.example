@@ -1,2 +1,14 @@
-bot_token: 'xxxxxxx:xxxxxxxxxxM78f5HBjU2F2ixxxxxxxxfihWbo'
-chat_id: 112233445566
+# Skopiuj do alertmanager.yml i uzupelnij bot_token oraz chat_id.
+route:
+  receiver: telegram
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: 'CHANGE_ME'
+        chat_id: 123456789
+        send_resolved: true

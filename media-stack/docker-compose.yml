@@ -1,6 +1,6 @@
 services:
   metube:
-    image: ghcr.io/alexta69/metube
+    image: ghcr.io/alexta69/metube:latest
     container_name: metube
     ports:
       - "${BIND_IP:-0.0.0.0}:9999:8081"

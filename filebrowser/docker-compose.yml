@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./files:/srv
-      - /home/homelab:/srv/home
+      - ${HOST_HOME:-/home/homelab}:/srv/home
       - ./config:/config
     ports:
       - "${BIND_IP:-0.0.0.0}:8083:80"

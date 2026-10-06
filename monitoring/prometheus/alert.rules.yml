@@ -9,6 +9,14 @@ groups:
         annotations:
           summary: "Kontener {{ $labels.name }} nie odpowiada"
 
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Zadanie {{ $labels.job }} ({{ $labels.instance }}) nie odpowiada"
+
       - alert: HighCPUUsage
         expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
         for: 5m

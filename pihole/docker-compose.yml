@@ -12,6 +12,8 @@ services:
       - TZ=${TZ}
       - WEBPASSWORD=${WEBPASSWORD}
       - DNSMASQ_LISTENING=all
+      - FTLCONF_webserver_api_password=${WEBPASSWORD}
+      - FTLCONF_dns_listeningMode=all
       - VIRTUAL_HOST=pihole.home
     volumes:
       - ./etc-pihole:/etc/pihole

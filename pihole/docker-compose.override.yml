@@ -1,4 +1,4 @@
-# pihole — network_mode: host
+# pihole
 services:
   pihole:
     mem_limit: 256m

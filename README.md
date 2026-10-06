@@ -38,7 +38,7 @@ Serwer działa na Linuksie, a każda usługa jest osobnym stosem Compose w swoim
 
 ## Architektura
 
-Wszystkie stosy (poza Tailscale i Pi-hole) są podłączone do jednej, zewnętrznej sieci Dockera `homelab_net`, dzięki czemu kontenery z różnych stosów widzą się nawzajem po nazwach. Usługi publikują swoje porty na hoście. To, na jakim adresie, określa zmienna `BIND_IP` (zob. [Dostęp zdalny i bezpieczeństwo](#dostęp-zdalny-i-bezpieczeństwo)). Zdalny dostęp odbywa się przez Tailscale (prywatnie) lub przez tunel Cloudflare.
+Wszystkie stosy (poza Tailscale i Pi-hole) są podłączone do jednej, zewnętrznej sieci Dockera `homelab_net`, dzięki czemu kontenery z różnych stosów widzą się nawzajem po nazwach. Usługi publikują swoje porty na hoście na wszystkich interfejsach (`BIND_IP=0.0.0.0`), więc są dostępne z sieci domowej i przez Tailscale niezależnie od adresu VPN serwera (zob. [Dostęp zdalny i bezpieczeństwo](#dostęp-zdalny-i-bezpieczeństwo)). Zdalny dostęp odbywa się przez Tailscale (prywatnie) lub przez tunel Cloudflare.
 
 ```mermaid
 flowchart LR
@@ -61,7 +61,6 @@ flowchart LR
 
     Internet --> CF --> homelab_net
     VPN --> TS --> homelab_net
-    TS -.-> DNS
 ```
 
 ## Usługi i porty
@@ -102,8 +101,8 @@ Obrazy bazy danych i cache są przypięte do konkretnych wersji (hash `sha256`),
 | Usługa | Rola | Port | RAM / CPU |
 |---|---|---|---|
 | **Tailscale** | Prywatny VPN. Działa w `network_mode: host`, stan trzyma w `./state`, wymaga `/dev/net/tun` oraz uprawnień `NET_ADMIN` i `NET_RAW`. | n/d (sieć hosta) | 128 MB / 0,3 |
-| **cloudflared** | Klient tunelu Cloudflare uruchamiany tokenem (`tunnel run --token`). Nie publikuje żadnych portów. Trasy (hostname → usługa) konfiguruje się w panelu Cloudflare, nie w repozytorium. | n/d | 128 MB / 0,5 |
-| **Pi-hole** | Serwer DNS blokujący reklamy i trackery. Publikuje porty 53 TCP/UDP oraz panel na 8088. Nie należy do `homelab_net`. | 53, 8088:80 | 256 MB / 0,5 |
+| **cloudflared** | Klient tunelu Cloudflare uruchamiany tokenem z zmiennej `TUNNEL_TOKEN` (`tunnel run`). Nie publikuje żadnych portów. Trasy (hostname → usługa) konfiguruje się w panelu Cloudflare, nie w repozytorium. | n/d | 128 MB / 0,5 |
+| **Pi-hole** | Serwer DNS blokujący reklamy i trackery w sieci domowej. Pełni wyłącznie rolę DNS (bez DHCP) i nie działa w trybie `host`. Publikuje porty 53 TCP/UDP oraz panel na 8088. Nie należy do `homelab_net`. | 53, 8088:80 | 256 MB / 0,5 |
 | **Nginx Proxy Manager** | Wewnętrzny reverse proxy (porty 80, 81 – panel, 443), dane w `./data` i `./letsencrypt`. | 80, 81, 443 | 256 MB / 0,5 |
 
 ### Administracja i narzędzia
@@ -112,8 +111,8 @@ Obrazy bazy danych i cache są przypięte do konkretnych wersji (hash `sha256`),
 |---|---|---|---|
 | **Portainer** (CE) | Graficzne zarządzanie kontenerami, wolumenami i sieciami (HTTPS). | 9443 | 256 MB / 0,3 |
 | **Dozzle** | Podgląd logów kontenerów na żywo (część stosu `monitoring/`). | 8888:8080 | 128 MB / 0,3 |
-| **Diun** | Sprawdza co 6 godzin (`0 */6 * * *`), czy dla używanych obrazów pojawiły się nowe wersje, i wysyła powiadomienie na Telegram. Sam niczego nie aktualizuje. | n/d | brak limitów |
-| **File Browser** | Przeglądarka plików z interfejsem webowym. Montuje `./files` oraz katalog domowy `/home/homelab` (jako `/srv/home`). | 8083:80 | brak limitów |
+| **Diun** | Sprawdza co 6 godzin (`0 */6 * * *`), czy dla używanych obrazów pojawiły się nowe wersje, i wysyła powiadomienie na Telegram. Sam niczego nie aktualizuje. | n/d | 128 MB / 0,3 |
+| **File Browser** | Przeglądarka plików z interfejsem webowym. Montuje `./files` oraz katalog hosta wskazany zmienną `HOST_HOME` (domyślnie `/home/homelab`, jako `/srv/home`). | 8083:80 | 128 MB / 0,3 |
 | **Speedtest** | Własny test prędkości sieci lokalnej. | 8092:80 | 128 MB / 0,3 |
 
 ### Monitoring (`monitoring/`)
@@ -130,27 +129,23 @@ Dodatkowe wyjątki:
 
 - **Tailscale** działa w sieci hosta (`network_mode: host`), bo zarządza interfejsem VPN na poziomie systemu.
 - **Pi-hole** nie używa `homelab_net` i publikuje porty bezpośrednio na hoście.
-- W `docker-compose.yml` Diuna `homelab_net` jest zadeklarowana, ale kontener nie jest do niej podłączony (Diun korzysta z gniazda Dockera, więc sieć nie jest mu potrzebna).
+- **Diun** nie należy do `homelab_net`. Korzysta z gniazda Dockera, więc sieć nie jest mu potrzebna.
 
 ## Dostęp zdalny i bezpieczeństwo
 
-1. **Adres nasłuchu portów kontroluje `BIND_IP`.** W plikach Compose porty mają postać `${BIND_IP:-0.0.0.0}:port:port`, więc **bez ustawienia zmiennej usługa nasłuchuje na wszystkich interfejsach**. Wartości z plików `.env.example`:
-   - `127.0.0.1` (tylko z samego serwera): `monitoring`, `nginx-proxy-manager`, `portainer`, `speedtest`,
-   - `0.0.0.0` (wszystkie interfejsy): `media-stack`, `immich`, `filebrowser`.
-
-   Aby udostępnić usługę tylko w sieci VPN, ustaw `BIND_IP` na adres serwera w Tailscale. Pi-hole (porty 53 i 8088) nie korzysta z `BIND_IP`, więc nasłuchuje zawsze na wszystkich interfejsach.
+1. **Wszystkie porty nasłuchują na `0.0.0.0`.** Zmienna `BIND_IP` jest ustawiona na `0.0.0.0` w każdym pliku `.env.example` i jest to też wartość domyślna w plikach Compose (`${BIND_IP:-0.0.0.0}:port:port`). Dzięki temu usługi działają niezależnie od tego, jaki adres ma serwer w sieci lokalnej lub w Tailscale. Zmienną można ustawić na konkretny adres (np. `127.0.0.1` albo adres Tailscale), jeśli któraś usługa ma być węższa. Pi-hole nie korzysta z `BIND_IP`.
 2. **Brak przekierowań portów na routerze.** Repozytorium ich nie wymaga: dostęp prywatny zapewnia Tailscale, a publiczny tunel Cloudflare (`cloudflared` łączy się z Cloudflare wychodząco).
 3. **Zakres publikacji zależy od panelu Cloudflare.** Token tunelu nie ogranicza, które kontenery można opublikować, więc do internetu warto wystawiać tylko to, co jest potrzebne (np. Jellyfin, Seerr).
 4. **Sekrety poza repozytorium.** Tokeny i hasła są wczytywane ze zmiennych środowiskowych (pliki `.env`).
 5. **Powiadomienia o aktualizacjach.** Diun obserwuje wszystkie kontenery (`DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true`) i wysyła powiadomienia na Telegram.
-6. **Uwaga o zaporze.** Porty opublikowane przez Dockera omijają typowe reguły zapór takich jak `ufw`. Ograniczenie ich przez `BIND_IP` jest skuteczniejsze niż reguły zapory.
+6. **Granicą jest sieć domowa.** Skoro porty są dostępne na wszystkich interfejsach, a Docker omija typowe reguły zapór takich jak `ufw`, ochrona zależy od routera: brak przekierowań portów oraz zapora blokująca ruch przychodzący także po IPv6.
 
 ## Monitoring i alerty
 
 Stos w katalogu `monitoring/` składa się z:
 
-- **Prometheus** (port 9090) zbiera metryki co 15 sekund (`scrape_interval`) i przechowuje je przez 15 dni (`--storage.tsdb.retention.time=15d`). Zbiera dane z trzech zadań: `prometheus`, `cadvisor` i `node-exporter`,
-- **node-exporter** (9100) dostarcza metryki maszyny (CPU, RAM, dysk),
+- **Prometheus** (port 9090) zbiera metryki co 15 sekund (`scrape_interval`) i przechowuje je przez 15 dni (`--storage.tsdb.retention.time=15d`). Zbiera dane z czterech zadań: `prometheus`, `cadvisor`, `node-exporter` i `alertmanager`,
+- **node-exporter** (9100) dostarcza metryki maszyny (CPU, RAM, dysk). Katalog główny hosta jest montowany jako `/rootfs` i wskazany przez `--path.rootfs`,
 - **cAdvisor** (8085:8080) dostarcza metryki kontenerów (uruchomiony z `-docker_only=true`, z wyłączonymi metrykami `disk` i `referenced_memory`),
 - **Alertmanager** (9093) odbiera alerty z Prometheusa i ma wysyłać powiadomienia na Telegram,
 - **Dozzle** (8888:8080) pokazuje logi kontenerów na żywo.
@@ -160,11 +155,12 @@ Zdefiniowane reguły alertów (`monitoring/prometheus/alert.rules.yml`, grupa `d
 | Alert | Warunek | Poziom |
 |---|---|---|
 | `ContainerDown` | kontener nie był widziany przez cAdvisora dłużej niż 60 s, utrzymuje się 2 min | krytyczny |
+| `TargetDown` | dowolne zadanie Prometheusa (`up == 0`) nie odpowiada przez 2 min | krytyczny |
 | `HighCPUUsage` | CPU powyżej 90% przez 5 min | ostrzeżenie |
 | `HighMemoryUsage` | RAM powyżej 90% przez 5 min | ostrzeżenie |
 | `LowDiskSpace` | mniej niż 10% wolnego miejsca na `/` przez 5 min | krytyczny |
 
-Konfiguracja powiadomień nie jest przechowywana w repozytorium. Plik `monitoring/alertmanager/alertmanager.yml` jest w `.gitignore`, a w katalogu leży tylko wzór `alertmanager.yml.example`. Zawiera on wyłącznie pola `bot_token` i `chat_id`, więc służy jako ściąga na dane do wpisania. Docelowy `alertmanager.yml` musi być pełną konfiguracją Alertmanagera (zob. [Znane ograniczenia](#znane-ograniczenia)).
+Konfiguracja powiadomień nie jest przechowywana w repozytorium. Plik `monitoring/alertmanager/alertmanager.yml` jest w `.gitignore`, a w katalogu leży tylko wzór `alertmanager.yml.example`. Wzór jest kompletną konfiguracją Alertmanagera z odbiorcą Telegram (`telegram_configs`). Wystarczy podmienić `bot_token` i `chat_id`.
 
 ## Limity zasobów
 
@@ -173,8 +169,6 @@ Większość usług ma w pliku `docker-compose.override.yml` własne limity pami
 Limity pozwalają uniknąć sytuacji, w której jedna usługa (np. wczytująca modele uczenia maszynowego) zajmie całą pamięć serwera i pociągnie za sobą pozostałe. Są dobrane do możliwości konkretnego sprzętu. Na mocniejszej lub słabszej maszynie dostosuj je w plikach `override`.
 
 Podział na dwa pliki ma też drugi cel: `docker-compose.yml` opisuje **co** działa, a `docker-compose.override.yml` opisuje **na jakim sprzęcie**. Dzięki temu pierwszy można łatwo przenosić między maszynami.
-
-Katalogi `diun/` i `filebrowser/` nie mają pliku `override`, więc działają bez limitów.
 
 ## Struktura repozytorium
 
@@ -202,7 +196,7 @@ Zawartość katalogów usług:
 | Plik | Gdzie występuje |
 |---|---|
 | `docker-compose.yml` (definicja usługi) | wszystkie katalogi |
-| `docker-compose.override.yml` (limity zasobów) | wszystkie poza `diun/` i `filebrowser/` |
+| `docker-compose.override.yml` (limity zasobów) | wszystkie katalogi |
 | `.env.example` (wzór zmiennych) | wszystkie poza `tailscale/` |
 
 ## Uruchomienie krok po kroku
@@ -214,7 +208,7 @@ Zawartość katalogów usług:
 - konto Cloudflare z utworzonym tunelem i jego tokenem (tylko jeśli chcesz publikować usługi),
 - urządzenie `/dev/dri` (GPU/iGPU) dla Jellyfin. Mapowanie jest zapisane w `docker-compose.yml` bezwarunkowo, więc na maszynie bez GPU usuń sekcję `devices`,
 - urządzenie `/dev/net/tun` dla Tailscale,
-- katalog `/home/homelab` na hoście, jeśli uruchamiasz File Browser w obecnej konfiguracji (lub zmień ścieżkę w `filebrowser/docker-compose.yml`).
+- katalog wskazany przez `HOST_HOME` (domyślnie `/home/homelab`), jeśli uruchamiasz File Browser.
 
 ### 1. Sklonuj repozytorium
 
@@ -237,7 +231,7 @@ W większości katalogów usług znajduje się plik `.env.example` ze wzorem. Sk
 cp media-stack/.env.example media-stack/.env
 ```
 
-Powtórz to dla każdej usługi, którą chcesz uruchomić. Dla Alertmanagera skopiuj `monitoring/alertmanager/alertmanager.yml.example` do `monitoring/alertmanager/alertmanager.yml` i uzupełnij go.
+Powtórz to dla każdej usługi, którą chcesz uruchomić. Dla Alertmanagera skopiuj `monitoring/alertmanager/alertmanager.yml.example` do `monitoring/alertmanager/alertmanager.yml` i wpisz token bota oraz identyfikator czatu.
 
 ### 4. Uruchom usługi
 
@@ -270,15 +264,16 @@ Poniżej wyłącznie nazwy zmiennych i przykładowe wartości z plików `.env.ex
 
 | Zmienna | Używana przez | Opis |
 |---|---|---|
-| `BIND_IP` | media-stack, immich, filebrowser, monitoring, nginx-proxy-manager, portainer, speedtest | Adres, na którym nasłuchują porty. Domyślnie w Compose `0.0.0.0`. Przykład w `.env.example`: `0.0.0.0` (media-stack, immich, filebrowser) lub `127.0.0.1` (pozostałe). |
-| `TZ` | media-stack, pihole, immich | Strefa czasowa, np. `Europe/Warsaw`. Diun ma ją wpisaną na stałe w `docker-compose.yml`. |
+| `BIND_IP` | media-stack, immich, filebrowser, monitoring, nginx-proxy-manager, portainer, speedtest | Adres, na którym nasłuchują porty. Domyślnie `0.0.0.0` (wszystkie interfejsy), tak samo we wszystkich plikach `.env.example`. |
+| `TZ` | media-stack, pihole, immich, diun | Strefa czasowa, np. `Europe/Warsaw` (w Diunie domyślnie `Europe/Warsaw`). |
 | `PUID`, `PGID` | media-stack | Identyfikatory użytkownika i grupy, które będą właścicielami plików (przykład: `1000`). |
 | `DATA_ROOT` | media-stack | Katalog z danymi multimedialnymi (przykład: `/srv/data`). |
 | `CONFIG_ROOT` | media-stack | Katalog z konfiguracją usług (przykład: `/srv/config`). |
+| `HOST_HOME` | filebrowser | Katalog hosta udostępniany jako `/srv/home` (domyślnie `/home/homelab`). |
 | `TUNNEL_TOKEN` | cloudflared | Token tunelu Cloudflare. |
 | `TELEGRAM_TOKEN` | diun | Token bota Telegram do powiadomień. |
 | `TELEGRAM_CHAT_ID` | diun | Identyfikator czatu, na który trafiają powiadomienia. |
-| `WEBPASSWORD` | pihole | Hasło do panelu administracyjnego. |
+| `WEBPASSWORD` | pihole | Hasło do panelu administracyjnego. Przekazywane do obu wersji Pi-hole: jako `WEBPASSWORD` (v5) i `FTLCONF_webserver_api_password` (v6). |
 | `UPLOAD_LOCATION` | immich | Katalog ze zdjęciami (przykład: `./library`). |
 | `DB_DATA_LOCATION` | immich | Katalog z danymi bazy (przykład: `./postgres`). |
 | `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE_NAME` | immich | Dane dostępowe do bazy. |
@@ -292,17 +287,16 @@ Tailscale nie używa pliku `.env`. Cloudflared, Diun i Pi-hole nie używają `BI
 - Dane aplikacji są w `.gitignore`: bazy i certyfikaty (`*.db`, `*.sqlite*`, `*.pem`, `*.key`, `*.crt`), katalogi `data/`, `db-data/`, `state/`, `config/`, `logs/` i `files/` na dowolnej głębokości oraz katalogi usług (`etc-pihole/`, `etc-dnsmasq.d/`, `letsencrypt/`, `immich/library/`, `immich/postgres/`).
 - Plik `monitoring/alertmanager/alertmanager.yml` z prawdziwymi danymi nie trafia do repozytorium. Udostępniony jest tylko wzór `.example`.
 - Przed publikacją własnej kopii sprawdź historię commitów pod kątem przypadkowo zapisanych sekretów (np. `git log -p | grep -i token`). Jeśli jakiś sekret kiedyś trafił do repozytorium, **unieważnij go i wygeneruj nowy**, bo samo usunięcie pliku nie usuwa go z historii.
-- Kontenery z dostępem do gniazda Dockera (`/var/run/docker.sock`): **Portainer, Dozzle i Diun**. To świadomy kompromis, który wymaga, by ich panele były dostępne wyłącznie przez VPN (Portainer i Dozzle mają panele WWW, Diun nie).
+- Kontenery z dostępem do gniazda Dockera (`/var/run/docker.sock`): **Portainer, Dozzle i Diun**. Portainer i Dozzle dają przez nie pełną kontrolę nad Dockerem (Diun nie ma panelu WWW), więc ich paneli nie wolno wystawiać poza sieć domową ani publikować przez tunel Cloudflare bez dodatkowego uwierzytelniania.
 - Obrazy z tagiem `latest` (lub bez tagu, jak MeTube) są wygodne, ale mogą wprowadzić zmiany niekompatybilne wstecz. Diun pomaga kontrolować, kiedy aktualizować. Przypięte hashem są tylko obrazy bazy danych i cache Immicha.
 
 ## Znane ograniczenia
 
-- **`alertmanager.yml.example`** zawiera tylko `bot_token` i `chat_id`. Alertmanager wymaga pełnej konfiguracji (sekcje `route` i `receivers` z wpisem `telegram_configs`), więc sam ten wzór nie wystarczy, żeby powiadomienia działały.
-- **Pi-hole:** komentarz w `pihole/docker-compose.override.yml` wspomina o `network_mode: host`, ale `docker-compose.yml` go nie ustawia. Kontener działa na opublikowanych portach 53 i 8088.
+- **Jellyfin:** transkodowanie sprzętowe jest włączone, a `/dev/dri` zmapowane bezwarunkowo. Na maszynie bez GPU/iGPU usuń sekcję `devices` w `media-stack/docker-compose.yml`, inaczej kontener się nie uruchomi.
+- **Pi-hole w sieci bridge:** w logach zapytań wszyscy klienci mogą wyglądać jak adres bramy Dockera, więc statystyki per urządzenie są mniej dokładne niż w trybie `host`. Do samego filtrowania DNS nie ma to wpływu.
 - **Watchtower:** w pliku Compose Immicha etykiety `com.centurylinklabs.watchtower.enable=false` na bazie i cache są pozostałością po oficjalnym pliku. Watchtower nie jest częścią tego repozytorium.
 - **`.gitignore`** zawiera wpisy dla `grafana` i `seafile`, których w repozytorium nie ma.
 - **Seerr** trzyma konfigurację w katalogu `jellyseerr` (nazwa z wcześniejszej wersji aplikacji).
-- **File Browser** ma na stałe wpisaną ścieżkę `/home/homelab` i nie ma limitów zasobów.
 
 ## Licencja
 
