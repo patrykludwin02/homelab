@@ -1,5 +1,0 @@
-# filebrowser
-services:
-  filebrowser:
-    mem_limit: 128m
-    cpus: 0.3

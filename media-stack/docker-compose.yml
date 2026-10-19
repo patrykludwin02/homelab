@@ -18,6 +18,8 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+    group_add:
+      - "989"
     devices:
       - /dev/dri:/dev/dri
     volumes:

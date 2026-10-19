@@ -1,5 +1,0 @@
-# nginx-proxy-manager
-services:
-  nginx-proxy-manager:
-    mem_limit: 256m
-    cpus: 0.5
