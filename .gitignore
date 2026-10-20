@@ -10,6 +10,8 @@
 *.pem
 *.key
 *.crt
+*.sql
+*.dump
 
 # Katalogi danych, stanów i logów (obsługuje dowolną głębokość)
 **/data/
