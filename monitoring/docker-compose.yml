@@ -43,15 +43,6 @@ services:
     networks:
       - homelab_net
 
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: alertmanager
-    restart: unless-stopped
-    volumes:
-      - ./alertmanager:/etc/alertmanager
-    networks:
-      - homelab_net
-
   dozzle:
     image: amir20/dozzle:latest
     container_name: dozzle
