@@ -24,8 +24,6 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    ports:
-      - "${BIND_IP:-0.0.0.0}:8085:8080"
     networks:
       - homelab_net
 
@@ -42,8 +40,6 @@ services:
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - "${BIND_IP:-0.0.0.0}:9100:9100"
     networks:
       - homelab_net
 
@@ -53,8 +49,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./alertmanager:/etc/alertmanager
-    ports:
-      - "${BIND_IP:-0.0.0.0}:9093:9093"
     networks:
       - homelab_net
 
