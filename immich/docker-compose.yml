@@ -22,15 +22,24 @@ services:
       - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
+    environment:
+      # Jawne nazwy kontenerów, żeby generyczne "redis"/"database" z innych stosów
+      # w homelab_net nie mogły przechwycić połączenia
+      DB_HOSTNAME: immich_postgres
+      REDIS_HOSTNAME: immich_redis
+      IMMICH_MACHINE_LEARNING_URL: http://immich_machine_learning:3003
     ports:
       - "${BIND_IP:-0.0.0.0}:2283:2283"
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_healthy
+      database:
+        condition: service_healthy
     restart: always
     healthcheck:
       disable: false
     networks:
+      - immich_internal
       - homelab_net
 
   immich-machine-learning:
@@ -49,7 +58,7 @@ services:
     healthcheck:
       disable: false
     networks:
-      - homelab_net
+      - immich_internal
 
   redis:
     container_name: immich_redis
@@ -58,7 +67,7 @@ services:
       test: redis-cli ping || exit 1
     restart: always
     networks:
-      - homelab_net
+      - immich_internal
 
   database:
     container_name: immich_postgres
@@ -78,11 +87,13 @@ services:
     healthcheck:
       disable: false
     networks:
-      - homelab_net
+      - immich_internal
 
 volumes:
   model-cache:
 
 networks:
+  # Prywatna sieć stosu: baza, Redis i uczenie maszynowe nie są widoczne dla innych usług
+  immich_internal:
   homelab_net:
     external: true

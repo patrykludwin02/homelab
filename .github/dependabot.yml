@@ -1,0 +1,17 @@
+# Dependabot zgłasza PR-y z nowymi wersjami obrazów.
+# Działa tylko dla obrazów z przypiętym tagiem (nie dla "latest").
+version: 2
+updates:
+  - package-ecosystem: "docker-compose"
+    directories:
+      - "/cloudflared"
+      - "/diun"
+      - "/immich"
+      - "/media-stack"
+      - "/monitoring"
+      - "/nginx-proxy-manager"
+      - "/pihole"
+      - "/portainer"
+      - "/tailscale"
+    schedule:
+      interval: "weekly"

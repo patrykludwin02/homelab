@@ -1,6 +1,7 @@
 # Pliki ze zmiennymi środowiskowymi i sekretami
 .env
 *.env
+.env.*
 !.env.example
 
 # Ogólne bazy danych i certyfikaty
@@ -11,7 +12,12 @@
 *.key
 *.crt
 *.sql
+*.sql.gz
 *.dump
+
+# Kopie zapasowe i logi
+*.tar.gz
+*.log
 
 # Katalogi danych, stanów i logów (obsługuje dowolną głębokość)
 **/data/

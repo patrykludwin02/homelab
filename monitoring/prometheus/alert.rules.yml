@@ -34,9 +34,25 @@ groups:
           summary: "Wysokie zużycie RAM (>90% przez 5 min)"
 
       - alert: LowDiskSpace
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        expr: (node_filesystem_avail_bytes{mountpoint=~"/|/mnt/dane_120|/mnt/karta_sd"} / node_filesystem_size_bytes{mountpoint=~"/|/mnt/dane_120|/mnt/karta_sd"}) * 100 < 10
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Mało miejsca na dysku (poniżej 10%)"
+          summary: "Mało miejsca na {{ $labels.mountpoint }} (poniżej 10%)"
+
+      - alert: FilesystemReadOnly
+        expr: node_filesystem_readonly{mountpoint=~"/|/mnt/dane_120|/mnt/karta_sd"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "System plików {{ $labels.mountpoint }} przeszedł w tryb tylko do odczytu (błąd dysku lub karty SD?)"
+
+      - alert: DiskMountMissing
+        expr: absent(node_filesystem_size_bytes{mountpoint="/mnt/dane_120"}) or absent(node_filesystem_size_bytes{mountpoint="/mnt/karta_sd"})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dysk /mnt/dane_120 lub /mnt/karta_sd nie jest zamontowany"
