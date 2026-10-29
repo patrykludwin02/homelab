@@ -26,7 +26,6 @@
 **/config/
 **/logs/
 **/files/
-**/scripts/
 
 # Dedykowane wykluczenia dla usług
 **/pihole/etc-pihole/
