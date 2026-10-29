@@ -19,13 +19,14 @@
 *.tar.gz
 *.log
 
-# Katalogi danych, stanów i logów (obsługuje dowolną głębokość)
+# Katalogi danych, stanów i logów
 **/data/
 **/db-data/
 **/state/
 **/config/
 **/logs/
 **/files/
+**/scripts/
 
 # Dedykowane wykluczenia dla usług
 **/pihole/etc-pihole/
