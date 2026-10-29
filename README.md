@@ -133,7 +133,6 @@ Tu są tylko nazwy i przykładowe wartości z plików `.env.example`.
 | `BIND_IP` | media-stack, immich, monitoring, nginx-proxy-manager, portainer | Adres, na którym nasłuchują porty (domyślnie `0.0.0.0`) |
 | `TZ` | media-stack, immich, pihole, diun | Strefa czasowa, np. `Europe/Warsaw` |
 | `PUID`, `PGID` | media-stack | Użytkownik i grupa właściciela plików (np. `1000`) |
-| `RENDER_GID` | media-stack | GID grupy `render` na hoście (`getent group render`), dla `/dev/dri` w Jellyfin |
 | `DATA_ROOT` | media-stack | Katalog z danymi multimedialnymi (np. `/srv/data`) |
 | `CONFIG_ROOT` | media-stack | Katalog z konfiguracją usług (np. `/srv/config`) |
 | `UPLOAD_LOCATION` | immich | Katalog z biblioteką zdjęć |
@@ -235,11 +234,4 @@ Każdy katalog usługi zawiera `docker-compose.yml`, a większość także `.env
 ## Znane ograniczenia
 
 - **Brak powiadomień o alertach:** reguły z `alert.rules.yml` działają, ale widać je tylko w panelu Prometheusa, bo stos nie zawiera Alertmanagera.
-- **Jellyfin:** `/dev/dri` jest mapowane bezwarunkowo. Identyfikator grupy `render` ustawia `RENDER_GID`. Oficjalny obraz Jellyfin ignoruje `PUID` i `PGID`.
-- **Pi-hole w sieci bridge:** w logach zapytań klienci mogą wyglądać jak adres bramy Dockera, więc statystyki per urządzenie są mniej dokładne. Samo filtrowanie działa poprawnie.
-- **Brak limitów zasobów:** żaden kontener nie ma ustawionych limitów pamięci ani CPU.
 - **Wersje obrazów:** większość usług używa tagu `latest`. Dependabot (`.github/dependabot.yml`) zacznie zgłaszać aktualizacje dopiero dla obrazów z przypiętym tagiem.
-
-## Licencja
-
-Dowolne wykorzystanie na własną odpowiedzialność. Używane aplikacje mają własne licencje.
